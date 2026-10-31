@@ -156,6 +156,7 @@ button{font:inherit}
   font:600 13px var(--font);color:rgba(255,255,255,.75);background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.18);
   padding:7px 14px;border-radius:999px;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
 html.intro-on .head .logo{visibility:hidden}
+html.intro-on .head.rise,html.intro-done .head.rise{animation:none;opacity:1;transform:none;filter:none}   /* the header must stand still while the logo lands in it */
 html.intro-on .rise{animation-play-state:paused}
 html.intro-on .page{opacity:0}
 html.intro-done .page{opacity:1;transition:opacity .5s ease}
@@ -415,7 +416,10 @@ html.intro-done .rise{animation-play-state:running}
       beam.style.opacity = (r > 0 && r < 1) ? Math.sin(r*Math.PI).toFixed(3) : "0";
       beam.style.top = (bandY - Hc*0.12) + "px";
       /* logo box: big in the middle, later flies to the header */
-      var tr = headLogo.getBoundingClientRect(), bigW = Math.min(Wc*0.86, 520), bx = (Wc-bigW)/2, by = Hc*0.40 - bigW*0.2;
+      /* where the logo is actually drawn inside the header svg box (the box can be wider than the drawing) */
+      var hb = headLogo.getBoundingClientRect(), vb = headLogo.viewBox.baseVal, k = Math.min(hb.width / vb.width, hb.height / vb.height);
+      var tr = {width: vb.width * k, left: hb.left + (hb.width - vb.width * k) / 2, top: hb.top + (hb.height - vb.height * k) / 2};
+      var bigW = Math.min(Wc*0.86, 520), bx = (Wc-bigW)/2, by = Hc*0.40 - bigW*0.2;
       var fl = ease(prog(t, FLY, END - .2));
       var w = bigW*(1-fl) + tr.width*fl, x = bx*(1-fl) + tr.left*fl, y = by*(1-fl) + tr.top*fl;
       il.style.width = w + "px"; il.style.transform = "translate(" + x.toFixed(1) + "px," + y.toFixed(1) + "px)";
