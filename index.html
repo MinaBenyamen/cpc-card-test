@@ -56,6 +56,8 @@ button{font:inherit}
 .logo{display:block;width:100%;max-width:270px;height:auto;max-height:clamp(54px,10.5vh,106px)}
 .logo .lg-ink,.logo .lg-ink g{fill:var(--logo-ink)}
 .logo .lg-ink2{fill:var(--logo-ink2)}
+.logo .lg-lane{fill:#26221F}                 /* dark version: light road, dark lane markings */
+:root[data-mode="light"] .logo .lg-lane{fill:#FFFFFF}
 .slogan{margin:2px 0 0;font-size:clamp(14px,2.1vh,18px);font-weight:700;letter-spacing:-.01em;text-align:center;text-wrap:balance}
 .mode{all:unset;cursor:pointer;position:absolute;top:-6px;right:-6px;width:36px;height:36px;border-radius:999px;display:grid;place-items:center;color:var(--fg);
   background:var(--chipBg);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);transition:transform .15s}
