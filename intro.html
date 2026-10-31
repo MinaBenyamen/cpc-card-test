@@ -141,12 +141,17 @@ button{font:inherit}
 @keyframes drive{from{transform:translateX(-64px)}to{transform:translateX(0)}}
 @media (prefers-reduced-motion: reduce){.road i{animation:none}}
 
-/* ===== opening intro (proposal): night drive -> flare -> logo -> logo flies to the header ===== */
+/* ===== opening intro (proposal v2): night drive -> light rises bottom-to-top -> logo builds part by part -> flies to the header ===== */
 .intro{position:fixed;inset:0;z-index:50;background:#0B0908;overflow:hidden;transition:background-color .6s ease,opacity .5s ease}
 .intro canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
-.intro .flash{position:absolute;inset:0;background:radial-gradient(circle at 50% 45%,#FFE2B8 0,#FFB060 35%,rgba(220,100,0,0) 75%);opacity:0;pointer-events:none}
-.intro .ilogo{position:absolute;left:0;top:0;transform-origin:0 0;will-change:transform,filter,opacity;opacity:0}
-.intro .ilogo svg{display:block;width:100%;height:auto}
+.intro .ilogo{position:absolute;left:0;top:0;transform-origin:0 0;will-change:transform}
+.intro .part{position:absolute;inset:0;opacity:0;will-change:transform,opacity,clip-path}
+.intro .part svg,.intro .sizer svg{display:block;width:100%!important;height:auto!important;max-width:none!important;max-height:none!important}
+.intro .ilogo .sizer{visibility:hidden}
+.intro .ilogo .sizer svg{display:block;width:100%;height:auto}
+.intro .beam{position:absolute;left:0;top:0;width:100%;height:24%;pointer-events:none;opacity:0;z-index:2;
+  background:linear-gradient(to top,rgba(255,170,80,0) 0%,rgba(255,200,140,.95) 55%,rgba(255,236,205,1) 62%,rgba(255,170,80,0) 100%);filter:blur(6px)}
+.intro .glowhead{position:absolute;width:5%;aspect-ratio:1;border-radius:50%;pointer-events:none;opacity:0;transform:translate(-50%,-50%);background:#FFF4E2;box-shadow:0 0 10px 4px rgba(255,230,190,.95),0 0 28px 12px rgba(255,150,40,.75),0 0 60px 26px rgba(220,100,0,.35)}
 .intro .skip{position:absolute;right:max(14px,env(safe-area-inset-right,0px));bottom:calc(16px + env(safe-area-inset-bottom,0px));
   font:600 13px var(--font);color:rgba(255,255,255,.75);background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.18);
   padding:7px 14px;border-radius:999px;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
@@ -155,6 +160,18 @@ html.intro-on .rise{animation-play-state:paused}
 html.intro-on .page{opacity:0}
 html.intro-done .page{opacity:1;transition:opacity .5s ease}
 html.intro-done .rise{animation-play-state:running}
+
+/* header after landing: a headlight streak crosses behind the logo every 7 s, and a soft glow breathes under it */
+.head::before{content:"";position:absolute;left:-30%;right:-30%;top:34%;height:2px;pointer-events:none;z-index:-1;
+  background:linear-gradient(90deg,transparent 0,rgba(255,236,205,0) 35%,rgba(255,236,205,.95) 50%,rgba(255,170,80,0) 65%,transparent 100%);
+  background-size:220% 100%;background-position:120% 0;animation:streak 7s cubic-bezier(.45,0,.2,1) 1.2s infinite;filter:drop-shadow(0 0 6px rgba(255,150,40,.9))}
+@keyframes streak{0%{background-position:120% 0;opacity:0}6%{opacity:1}22%{background-position:-20% 0;opacity:1}26%,100%{background-position:-20% 0;opacity:0}}
+.head::after{content:"";position:absolute;left:50%;top:30%;width:70%;height:46%;transform:translate(-50%,-50%);pointer-events:none;z-index:-1;border-radius:50%;
+  background:radial-gradient(closest-side,rgba(220,100,0,.28),rgba(220,100,0,0));animation:breathe 4.5s ease-in-out infinite}
+@keyframes breathe{0%,100%{opacity:.45;transform:translate(-50%,-50%) scale(.92)}50%{opacity:1;transform:translate(-50%,-50%) scale(1.06)}}
+.head{isolation:isolate}
+@media (prefers-reduced-motion: reduce){.head::before,.head::after{animation:none;opacity:0}}
+
 
 /* ambient motion — runs by itself on phones (no mouse needed) */
 .acts .card3d:nth-child(2)::after{animation-delay:1.4s}
@@ -196,8 +213,8 @@ html.intro-done .rise{animation-play-state:running}
 
 <div class="intro" id="intro" aria-hidden="true" hidden>
   <canvas id="road"></canvas>
-  <div class="flash" id="flash"></div>
-  <div class="ilogo" id="ilogo"></div>
+  <div class="beam" id="beam"></div>
+  <div class="ilogo" id="ilogo"><div class="sizer" id="sizer"></div><div class="glowhead" id="glowhead"></div></div>
   <button type="button" class="skip" id="skip">Skip</button>
 </div>
 </head>
@@ -321,57 +338,61 @@ html.intro-done .rise{animation-play-state:running}
   document.addEventListener("pointerout", function(e){ if (!e.relatedTarget && hot){ cool(hot); hot = null; } }, {passive:true});
   document.addEventListener("touchstart", function(e){ var el = e.target.closest && e.target.closest(".card3d"); if (el){ el.classList.add("hot"); setTimeout(function(){ el.classList.remove("hot"); }, 260); } }, {passive:true});
 
-  /* ===== opening intro ===== */
+  /* ===== opening intro v2 ===== */
   (function(){
     var reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     var seen = false; try { seen = sessionStorage.getItem("cpc-intro") === "1"; } catch(e){}
     var box = document.getElementById("intro");
     if (reduce || seen || !box || !window.requestAnimationFrame) return;
     var cv = document.getElementById("road"), ctx = cv.getContext("2d");
-    var flash = document.getElementById("flash"), il = document.getElementById("ilogo");
+    var beam = document.getElementById("beam"), il = document.getElementById("ilogo"), gh = document.getElementById("glowhead");
     var headLogo = document.querySelector(".head .logo");
-    il.appendChild(headLogo.cloneNode(true));
+    document.getElementById("sizer").appendChild(headLogo.cloneNode(true));
+    /* the mark split into its parts (insets in % of the logo box: top right bottom left) */
+    var PARTS = {
+      sw: [0, 82.18, 0, 0], c1: [2.29, 55, 40.9, 18.18], p: [2.29, 26.36, 40.9, 45], c2: [2.29, 0, 40.9, 73.64],
+      ar: [59.34, 0, 24.97, 17.82], en: [75.6, 0, 10.65, 17.82]
+    };
+    var el = {};
+    Object.keys(PARTS).forEach(function(k){
+      var d = document.createElement("div"); d.className = "part";
+      d.appendChild(headLogo.cloneNode(true)); il.insertBefore(d, gh); el[k] = d;
+    });
+    function clip(k, extraTop){ var p = PARTS[k]; return "inset(" + Math.max(p[0], extraTop || 0) + "% " + p[1] + "% " + p[2] + "% " + p[3] + "%)"; }
+    Object.keys(el).forEach(function(k){ el[k].style.clipPath = el[k].style.webkitClipPath = clip(k); });
     root.classList.add("intro-on"); box.hidden = false;
     var dpr = Math.min(window.devicePixelRatio || 1, 2), Wc, Hc;
     function size(){ Wc = cv.clientWidth; Hc = cv.clientHeight; cv.width = Wc * dpr; cv.height = Hc * dpr; ctx.setTransform(dpr,0,0,dpr,0,0); }
     size(); window.addEventListener("resize", size);
-    var t0 = null, done = false, sparks = [];
-    for (var i = 0; i < 90; i++) sparks.push({a: Math.random()*6.283, v: 120 + Math.random()*420, l: .6 + Math.random()*1.1, s: 1 + Math.random()*2.5});
-    var DRIVE = 1.9, FLARE = 2.35, BURST = 3.0, FLY = 3.55, END = 4.25;
+    var t0 = null, done = false;
+    /* timeline (s) */
+    var DRIVE = 1.7, RISE = 2.75, SW0 = 2.55, SW1 = 3.25, L0 = 3.05, AR0 = 3.7, EN0 = 3.9, FLY = 4.5, END = 5.25;
+    var FIX = (location.hash.match(/introt=([\d.]+)/) || [])[1];   /* review aid: #introt=2.3 freezes the intro at that second */
     function ease(x){ x = Math.min(Math.max(x,0),1); return 1 - Math.pow(1-x,3); }
+    function back(x){ x = Math.min(Math.max(x,0),1); var s = 1.5; return 1 + (s+1)*Math.pow(x-1,3) + s*Math.pow(x-1,2); }
     function prog(t,a,b){ return Math.min(Math.max((t-a)/(b-a),0),1); }
     function road(t){
       var hy = Hc*0.46, cx = Wc/2;
-      var g = ctx.createLinearGradient(0,0,0,hy);
-      g.addColorStop(0,"#0B0908"); g.addColorStop(1,"#3A1B05");
+      var g = ctx.createLinearGradient(0,0,0,hy); g.addColorStop(0,"#0B0908"); g.addColorStop(1,"#3A1B05");
       ctx.fillStyle = g; ctx.fillRect(0,0,Wc,hy);
       var gl = ctx.createRadialGradient(cx,hy,0,cx,hy,Wc*0.9);
       gl.addColorStop(0,"rgba(220,100,0,.55)"); gl.addColorStop(1,"rgba(220,100,0,0)");
       ctx.fillStyle = gl; ctx.fillRect(0,0,Wc,Hc);
       ctx.fillStyle = "#121010"; ctx.fillRect(0,hy,Wc,Hc-hy);
       var spread = Wc*0.9;
-      ctx.beginPath(); ctx.moveTo(cx,hy); ctx.lineTo(cx+spread,Hc); ctx.lineTo(cx-spread,Hc); ctx.closePath();
-      ctx.fillStyle = "#1E1B1A"; ctx.fill();
+      ctx.beginPath(); ctx.moveTo(cx,hy); ctx.lineTo(cx+spread,Hc); ctx.lineTo(cx-spread,Hc); ctx.closePath(); ctx.fillStyle = "#1E1B1A"; ctx.fill();
       ctx.lineWidth = 3;
       ctx.strokeStyle = "#EDE8E3"; ctx.beginPath(); ctx.moveTo(cx-2,hy); ctx.lineTo(cx-spread*0.86,Hc); ctx.stroke();
       ctx.strokeStyle = "#DC6400"; ctx.beginPath(); ctx.moveTo(cx+2,hy); ctx.lineTo(cx+spread*0.86,Hc); ctx.stroke();
-      var dist = 3*t + 3.2*t*t;                       /* speeding up */
-      ctx.fillStyle = "#F7F2EA";
+      var dist = 3*t + 3.2*t*t; ctx.fillStyle = "#F7F2EA";
       for (var k = 0; k < 40; k++){
-        var z0 = (k*2 - (dist % 2)), z1 = z0 + 1;      /* depth units */
-        if (z1 <= 0.15) continue;
-        var y0 = hy + (Hc-hy)*0.9/Math.max(z0,0.15)*0.9, y1 = hy + (Hc-hy)*0.9/z1*0.9;
-        if (y1 > Hc) continue;
-        var w0 = Math.max(1, (y0-hy)/(Hc-hy)*9), w1 = Math.max(.5, (y1-hy)/(Hc-hy)*9);
+        var z0 = (k*2 - (dist % 2)), z1 = z0 + 1; if (z1 <= 0.15) continue;
+        var y0 = hy + (Hc-hy)*0.81/Math.max(z0,0.15), y1 = hy + (Hc-hy)*0.81/z1; if (y1 > Hc) continue;
+        var w0 = Math.max(1,(y0-hy)/(Hc-hy)*9), w1 = Math.max(.5,(y1-hy)/(Hc-hy)*9);
         ctx.beginPath(); ctx.moveTo(cx-w1/2,y1); ctx.lineTo(cx+w1/2,y1); ctx.lineTo(cx+w0/2,Math.min(y0,Hc)); ctx.lineTo(cx-w0/2,Math.min(y0,Hc)); ctx.closePath(); ctx.fill();
       }
-      var fog = ctx.createLinearGradient(0,hy-4,0,hy+Hc*0.18);
-      fog.addColorStop(0,"rgba(120,55,10,.85)"); fog.addColorStop(1,"rgba(120,55,10,0)");
+      var fog = ctx.createLinearGradient(0,hy-4,0,hy+Hc*0.18); fog.addColorStop(0,"rgba(120,55,10,.85)"); fog.addColorStop(1,"rgba(120,55,10,0)");
       ctx.fillStyle = fog; ctx.fillRect(0,hy-4,Wc,Hc*0.18);
-    }
-    function target(){
-      var r = headLogo.getBoundingClientRect();
-      return {x:r.left, y:r.top, w:r.width};
     }
     function finish(){
       if (done) return; done = true;
@@ -383,38 +404,40 @@ html.intro-done .rise{animation-play-state:running}
     function step(ts){
       if (done) return;
       if (t0 === null) t0 = ts;
-      var t = (ts - t0)/1000;
+      var t = FIX ? parseFloat(FIX) : (ts - t0)/1000;
       ctx.clearRect(0,0,Wc,Hc);
-      if (t < FLARE + .2) road(t);
-      else { ctx.fillStyle = "#0B0908"; ctx.fillRect(0,0,Wc,Hc); }
-      var f = prog(t, DRIVE, FLARE);
-      var fo = 1 - ease(prog(t, FLARE, FLARE + .6));
-      flash.style.opacity = (t < FLARE ? f*f : fo).toFixed(3);
-      /* logo bursts out of the light, then flies to its place in the header */
-      var tgt = target(), bigW = Math.min(Wc*0.86, 520), bx = (Wc - bigW)/2, by = Hc*0.40 - bigW*0.2;
-      if (t >= FLARE){
-        var q = ease(prog(t, FLARE, BURST)), sc = 1.6 - 0.6*q, blur = (1-q)*10;
-        var fl = ease(prog(t, FLY, END - .2));
-        var w = bigW*sc*(1-fl) + tgt.w*fl;
-        var x = (bx - (bigW*sc - bigW)/2)*(1-fl) + tgt.x*fl;
-        var y = (by - (bigW*sc - bigW)*0.2)*(1-fl) + tgt.y*fl;
-        il.style.width = w + "px";
-        il.style.transform = "translate(" + x.toFixed(1) + "px," + y.toFixed(1) + "px)";
-        il.style.filter = blur > .3 ? "blur(" + blur.toFixed(1) + "px)" : "none";
-        il.style.opacity = Math.min(1, prog(t, FLARE, FLARE + .35)).toFixed(3);
-        box.style.backgroundColor = "rgba(11,9,8," + (1 - fl).toFixed(3) + ")";
-        if (fl > 0) root.classList.add("intro-done");
-        /* sparks */
-        var ts2 = t - FLARE, cx = bx + bigW/2, cy = by + bigW*0.2;
-        if (ts2 < 1.8){
-          for (var i = 0; i < sparks.length; i++){
-            var s = sparks[i], life = ts2 / s.l; if (life >= 1) continue;
-            var d = s.v*ts2*(1 - .3*ts2), px = cx + Math.cos(s.a)*d, py = cy + Math.sin(s.a)*d*0.7 + 50*ts2*ts2;
-            ctx.fillStyle = "rgba(255,150,40," + (1-life).toFixed(3) + ")";
-            ctx.beginPath(); ctx.arc(px, py, s.s, 0, 6.283); ctx.fill();
-          }
-        }
-      }
+      /* road, then a band of light rises from the bottom of the screen to the top and wipes it away */
+      var r = prog(t, DRIVE, RISE), bandY = Hc*(1.12 - r*1.36);
+      if (t < RISE + .05){
+        road(t);
+        if (r > 0){ ctx.fillStyle = "#0B0908"; ctx.fillRect(0, bandY + Hc*0.12, Wc, Hc); }
+      } else { ctx.fillStyle = "#0B0908"; ctx.fillRect(0,0,Wc,Hc); }
+      beam.style.opacity = (r > 0 && r < 1) ? Math.sin(r*Math.PI).toFixed(3) : "0";
+      beam.style.top = (bandY - Hc*0.12) + "px";
+      /* logo box: big in the middle, later flies to the header */
+      var tr = headLogo.getBoundingClientRect(), bigW = Math.min(Wc*0.86, 520), bx = (Wc-bigW)/2, by = Hc*0.40 - bigW*0.2;
+      var fl = ease(prog(t, FLY, END - .2));
+      var w = bigW*(1-fl) + tr.width*fl, x = bx*(1-fl) + tr.left*fl, y = by*(1-fl) + tr.top*fl;
+      il.style.width = w + "px"; il.style.transform = "translate(" + x.toFixed(1) + "px," + y.toFixed(1) + "px)";
+      /* 1) the road mark is drawn bottom -> top with a light travelling up it */
+      var s = ease(prog(t, SW0, SW1));
+      if (s > 0){ el.sw.style.opacity = "1"; el.sw.style.clipPath = el.sw.style.webkitClipPath = clip("sw", (1 - s)*100); }
+      gh.style.opacity = (s > 0 && s < 1) ? (Math.sin(s*Math.PI)).toFixed(3) : "0";
+      gh.style.left = "8.5%"; gh.style.top = ((1 - s)*100) + "%";
+      /* 2) C - P - C drive in from the right */
+      ["c1","p","c2"].forEach(function(k, i){
+        var q = prog(t, L0 + i*.15, L0 + .55 + i*.15);
+        el[k].style.opacity = ease(q).toFixed(3);
+        el[k].style.transform = "translateX(" + ((1 - back(q))*30).toFixed(2) + "%)";
+      });
+      /* 3) Arabic, then English name rise in */
+      [["ar", AR0], ["en", EN0]].forEach(function(a){
+        var q = ease(prog(t, a[1], a[1] + .5));
+        el[a[0]].style.opacity = q.toFixed(3); el[a[0]].style.transform = "translateY(" + ((1-q)*6).toFixed(2) + "%)";
+      });
+      box.style.backgroundColor = "rgba(11,9,8," + (1 - fl).toFixed(3) + ")";
+      if (fl > 0){ root.classList.add("intro-done"); cv.style.opacity = (1 - fl).toFixed(3); }
+      if (FIX){ return; }
       if (t >= END){ finish(); return; }
       requestAnimationFrame(step);
     }
