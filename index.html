@@ -48,7 +48,7 @@ button{font:inherit}
 
 .page{position:relative;z-index:1;height:100vh;height:100svh;height:var(--app-h,100svh);max-width:440px;margin:0 auto;display:flex;flex-direction:column;justify-content:space-between;gap:6px;overflow:hidden;
   padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
-  padding-block:clamp(8px,2vh,24px) calc(clamp(10px,2vh,20px) + max(env(safe-area-inset-bottom,0px), var(--bar,0px)))}
+  padding-block:clamp(8px,2vh,24px) calc(clamp(10px,2vh,20px) + max(env(safe-area-inset-bottom,0px), var(--tbar,0px)))}
 
 .page > *{flex-shrink:0}
 /* header */
@@ -242,11 +242,11 @@ button{font:inherit}
   /* fit to the visible phone screen (Safari bars included) */
   var page = document.querySelector(".page");
   /* iPhone with iOS 26 Safari (and links opened from apps in its Safari view): the bottom toolbar floats OVER the page
-     and innerHeight runs under it, so keep the content above it. Test override: #bar=NN (px). */
+     and innerHeight runs under it, so keep the content above it. Test override: #bar=NN (px). Var name --tbar (--bar is a colour token). */
   (function(){
     var ua = navigator.userAgent, v = +((ua.match(/Version\/(\d+)/) || [])[1] || 0), m = location.hash.match(/bar=(\d+)/);
-    if (m) root.style.setProperty("--bar", m[1] + "px");
-    else if (/iPhone|iPod/.test(ua) && v >= 26) root.style.setProperty("--bar", "76px");
+    if (m) root.style.setProperty("--tbar", m[1] + "px");
+    else if (/iPhone|iPod/.test(ua) && v >= 26) root.style.setProperty("--tbar", "76px");
   })();
   function fit(){
     var H = window.innerHeight;                       /* the part of the screen you actually see (browser bars excluded) */
